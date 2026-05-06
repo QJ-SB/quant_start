@@ -122,53 +122,70 @@ print("【金叉】：")
 print(df[df["golden_cross"]][["收盘", "MA5", "MA20"]])
 print("\n【死叉】：")
 print(df[df["death_cross"]][["收盘", "MA5", "MA20"]])
-# print(daily_data_with_ma_cross.columns.tolist())
 
 
 # 【画K线图】
 # 全局中文适配
 plt.rcParams["font.sans-serif"] = ["Microsoft YaHei"]
 plt.rcParams["axes.unicode_minus"] = False
-# 画图(创建画布 1)
-plt.figure(figsize=(14, 6))
-# 画线1：收盘价
-plt.plot(df["收盘"], label="收盘价", color="black")
-# 画线2：MA5
-plt.plot(df["MA5"], label="MA5", color="orange")
-# 画线3：MA20
-plt.plot(df["MA20"], label="MA20", color="purple")
+# ========== v0.3 画图：主图 + 副图 ==========
+# 1. 创建画布和两个子图
+fig, (ax1, ax2) = plt.subplots(
+    nrows=2,
+    ncols=1,
+    figsize=(14, 8),
+    sharex=True,
+    gridspec_kw={"height_ratios": [3, 1]},
+)
 
-# 先用新dataframe裁出需要的“金叉制作原料”
+# 2. 主图（ax1）：收盘价 + MA5 + MA20
+ax1.plot(df["收盘"], label="收盘价", color="black")
+ax1.plot(df["MA5"], label="MA5", color="orange")
+ax1.plot(df["MA20"], label="MA20", color="purple")
+
+# 3. 主图：金叉死叉标记
 golden_cross_points = df[df["golden_cross"]]
-# 标记金叉
-plt.scatter(
-    x=golden_cross_points.index,  # 横坐标是index日期
-    y=golden_cross_points["收盘"] * 0.98,  # 纵坐标收盘价 * 偏移量（标在收盘价下方）
-    marker="^",  # 叉符号
-    s=100,  # 大小
-    label="金叉",  # 图例名
-    color="red",  # 颜色
-    zorder=5,  # 图层顺序
+ax1.scatter(
+    x=golden_cross_points.index,
+    y=golden_cross_points["收盘"] * 0.98,
+    marker="^",
+    s=100,
+    label="金叉",
+    color="red",
+    zorder=5,
 )
-# 先用新dataframe裁出需要的“死叉制作原料”
 death_cross_points = df[df["death_cross"]]
-# 标记死叉
-plt.scatter(
-    x=death_cross_points.index,  # 横坐标是index日期
-    y=death_cross_points["收盘"] * 1.02,  # 纵坐标收盘价 * 偏移量（标在收盘价上方）
-    marker="v",  # 叉符号
-    s=100,  # 大小
-    label="死叉",  # 图例名
-    color="green",  # 颜色
-    zorder=5,  # 图层顺序
+ax1.scatter(
+    x=death_cross_points.index,
+    y=death_cross_points["收盘"] * 1.02,
+    marker="v",
+    s=100,
+    label="死叉",
+    color="green",
+    zorder=5,
 )
 
-# 补全plot元素
-plt.title("平安银行（000001）- MA Cross Strategy")  # 标题
-plt.legend()  # 显示图例
-plt.xlabel("日期")  # 添加x轴标签
-plt.ylabel("价格")  # 添加y轴标签
-plt.grid(True)  # 网格化
-# 保存fig到当前工作根目录
+# 4. 主图：补全元素
+ax1.set_title("平安银行（000001）- MA Cross Strategy")
+ax1.set_ylabel("价格")
+ax1.legend()
+ax1.grid(True)
+
+# 5. 副图（ax2）：成交量柱状图
+volume_in_wan_shou = df["成交量"] / 10000  # 单位换算：手 → 万手
+ax2.bar(
+    x=df.index,
+    height=volume_in_wan_shou,
+    color="gray",
+    alpha=0.6,
+)
+
+# 6. 副图：补全元素
+ax2.set_xlabel("日期")
+ax2.set_ylabel("成交量（万手）")
+ax2.grid(True)
+
+# 7. 保存 + 展示
+plt.tight_layout()  # 自动调整子图间距，避免重叠
 plt.savefig("images/ma_cross_demo.png", dpi=150, bbox_inches="tight")
 plt.show()  # 展示
