@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def run_backtest(df, initial_capital=100000, commission=0.00075):
+def run_backtest(df, commission=0.00075):
     """
     根据金叉死叉信号模拟交易。
 
@@ -21,9 +21,8 @@ def run_backtest(df, initial_capital=100000, commission=0.00075):
     - 开仓/平仓当日额外扣除 commission（默认 0.15%）
 
     :param df: 包含 golden_cross / death_cross 列的 DataFrame
-    :param initial_capital: 初始资金（默认 10 万元，用于显示净值）
     :param commission: 单边交易费率（默认 0.00075，即每次开仓或平仓约 0.075%）
-                       一次完整交易（开仓 + 平仓）总成本约 2 × commission = 0.15%
+                       一次完整交易（开仓 + 平仓）总成本1`约 2 × commission = 0.15%
 
     :return: pd.DataFrame: 增加 position / daily_return / equity_curve 列
     """
@@ -94,15 +93,15 @@ def calculate_metrics(df):
     # 遍历所有配对好的开仓/平仓日期（一笔交易 = 一次开仓+平仓）
     for open_d, close_d in trades:
         # 获取【开仓日】在表格中的行号，减1得到【开仓前一天】的行号
-        prev_open_idx = df.index.get_loc(open_d) - 1
+        prev_open_iloc = df.index.get_loc(open_d) - 1
 
         # 边界处理：如果是回测第一天就开仓，没有前一天数据
-        if prev_open_idx < 0:
+        if prev_open_iloc < 0:
             # 直接使用初始本金1.0作为入场净值
             entry_equity = 1.0
         else:
             # 正常情况：取开仓前一天的账户净值作为入场本金
-            entry_equity = df["equity_curve"].iloc[prev_open_idx]
+            entry_equity = df["equity_curve"].iloc[prev_open_iloc]
 
         # 获取平仓日当天的账户净值（出场总资产）
         exit_equity = df["equity_curve"].loc[close_d]
