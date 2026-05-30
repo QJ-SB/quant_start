@@ -10,17 +10,19 @@ from backtest import run_backtest, calculate_metrics
 from visualization import plot_ma_cross
 
 
-def main(symbol="000001"):
+def main(symbol="000001", short_window=5, long_window=20):
     """
     运行 MA 交叉策略 demo + 完整回测评估。
 
     :param symbol: 股票代码（默认平安银行 000001）
+    :param short_window: 短期均线滑动窗口值
+    :param long_window: 长期均线滑动窗口值
     """
     # Step 1: 加载数据
     df = load_stock_daily_data(symbol)
 
     # Step 2: 计算 MA 均线和金叉死叉信号
-    df = calculate_ma_cross(df, short_window=5, long_window=20)
+    df = calculate_ma_cross(df, short_window, long_window)
 
     # Step 3: 回测 + 评估
     df = run_backtest(df)
@@ -28,9 +30,9 @@ def main(symbol="000001"):
 
     # Step 4: 打印金叉死叉信号
     print("【金叉】：")
-    print(df[df["golden_cross"]][["收盘", "MA5", "MA20"]])
+    print(df[df["golden_cross"]][["收盘", f"MA{short_window}", f"MA{long_window}"]])
     print("\n【死叉】：")
-    print(df[df["death_cross"]][["收盘", "MA5", "MA20"]])
+    print(df[df["death_cross"]][["收盘", f"MA{short_window}", f"MA{long_window}"]])
 
     # Step 5: 打印策略评估指标
     print("\n【策略评估指标】：")
@@ -44,7 +46,7 @@ def main(symbol="000001"):
     print(f"  完整交易次数: {metrics['num_trades']:>7d}")
 
     # Step 6: 画图（含净值曲线）
-    plot_ma_cross(df)
+    plot_ma_cross(df, short_window=short_window, long_window=long_window)
 
 
 if __name__ == "__main__":

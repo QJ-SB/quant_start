@@ -12,18 +12,22 @@ plt.rcParams["font.sans-serif"] = ["Microsoft YaHei"]
 plt.rcParams["axes.unicode_minus"] = False
 
 
-def plot_ma_cross(df, save_path="images/ma_cross_demo.png"):
+def plot_ma_cross(
+    df, save_path="images/ma_cross_demo.png", short_window=5, long_window=20
+):
     """
     画 MA 均线交叉策略图（主图 + 副图）。
 
-    主图：收盘价 + MA5 + MA20 + 金叉死叉标记
+    主图：收盘价 + MA{short_windoww} + MA{long_window} + 金叉死叉标记
          + 策略净值曲线（如果 df 中有 equity_curve 列，用右 Y 轴显示）
     副图：成交量柱状图
 
     :param df: 数据 DataFrame，需包含以下列：
-               收盘 / MA5 / MA20 / golden_cross / death_cross / 成交量
+               收盘 / MA{short_window} / MA{long_window} / golden_cross / death_cross / 成交量
                可选：equity_curve（策略净值曲线，会在主图右轴显示）
     :param save_path: 图片保存路径（默认 "images/ma_cross_demo.png"）
+    :param short_window: 短期均线的滑动窗口值
+    :param long_window: 长期均线的滑动窗口值
 
     :return: None（副作用：保存 PNG 到磁盘 + 弹窗显示）
     """
@@ -41,9 +45,9 @@ def plot_ma_cross(df, save_path="images/ma_cross_demo.png"):
     # 绘制收盘价曲线
     ax1.plot(df["收盘"], label="收盘价", color="black")
     # 绘制5日均线曲线
-    ax1.plot(df["MA5"], label="MA5", color="orange")
+    ax1.plot(df[f"MA{short_window}"], label=f"MA{short_window}", color="orange")
     # 绘制20日均线曲线
-    ax1.plot(df["MA20"], label="MA20", color="purple")
+    ax1.plot(df[f"MA{long_window}"], label=f"MA{long_window}", color="purple")
 
     # ============== 3. 主图：标记金叉、死叉信号点 ==============
     # 筛选出所有金叉信号的数据
