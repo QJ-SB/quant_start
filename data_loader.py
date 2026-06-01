@@ -1,7 +1,7 @@
 """
 data_loader.py — 数据获取层
 
-负责从 akshare 拉取 A 股日线数据，带本地 CSV 缓存机制。
+负责从 tushare 拉取 A 股日线数据，带本地 CSV 缓存机制。
 对外暴露：load_stock_daily_data 函数
 """
 
@@ -9,12 +9,29 @@ import time
 import os
 from datetime import datetime, timedelta
 
-import akshare as ak
 import pandas as pd
+import tushare as ts
+from dotenv import load_dotenv
+
+load_dotenv()  # 加载 .env 到环境变量
+ts.set_token(os.environ["TUSHARE_TOKEN"])  # 从环境读 tushare_token
+pro = ts.pro_api()
+
 
 # 缓存根目录（模块内部常量）
 CACHE_DIR = "daily_data_cache"
 os.makedirs(name=CACHE_DIR, exist_ok=True)
+
+
+def to_ts_code(symbol):
+    """
+    转换股票代码成tushare接受的格式
+
+    :param symbol: 股票代码
+    :return: tushare格式股票代码
+    """
+    # 6 开头=上海.SH, 0/3 开头=深圳.SZ
+    return f"{symbol}.SH" if symbol.startswith("6") else f"{symbol}.SZ"
 
 
 def fetch_daily_with_retry(symbol, start_date, end_date, max_retries=5):
@@ -31,15 +48,25 @@ def fetch_daily_with_retry(symbol, start_date, end_date, max_retries=5):
     """
     for i in range(max_retries):
         try:
-            df = ak.stock_zh_a_hist(
-                symbol=symbol,
-                period="daily",
-                start_date=start_date,
-                end_date=end_date,
-                adjust="qfq",
+            df = pro.daily(
+                ts_code=to_ts_code(symbol), start_date=start_date, end_date=end_date
             )
             print(f"第{i + 1}次拉取成功")
+
+            #  映射成你现有的中文列名
+            df = df.rename(
+                columns={
+                    "open": "开盘",
+                    "high": "最高",
+                    "low": "最低",
+                    "close": "收盘",
+                    "vol": "成交量",
+                    "trade_date": "日期",
+                }
+            )
+
             return df
+
         except Exception as e:
             print(f"第{i + 1}次拉取失败：{type(e).__name__} - {e}")
             if i < max_retries - 1:
@@ -60,9 +87,9 @@ def load_stock_daily_data(symbol, force_refresh=False):
     cache_path = os.path.join(CACHE_DIR, f"{symbol}.csv")
 
     if os.path.exists(cache_path) and not force_refresh:
-        df = pd.read_csv(cache_path, dtype={"股票代码": str})
+        df = pd.read_csv(cache_path)
     else:
-        print("从akshare拉取新数据")
+        print("从tushare拉取新数据")
         end_date = datetime.now().strftime("%Y%m%d")
         start_date = (datetime.now() - timedelta(days=365)).strftime("%Y%m%d")
 
@@ -71,9 +98,8 @@ def load_stock_daily_data(symbol, force_refresh=False):
         )
         df.to_csv(path_or_buf=cache_path, index=False)
 
-    df["日期"] = pd.to_datetime(df["日期"])
-    df = df.set_index("日期")
-
+    df["日期"] = pd.to_datetime(df["日期"], format="%Y%m%d")  # 修改日期格式
+    df = df.set_index("日期").sort_index()  # 设置日期为索引【并且改序】
     return df
 
 
