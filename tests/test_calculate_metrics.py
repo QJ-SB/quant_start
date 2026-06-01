@@ -80,7 +80,7 @@ def _build_mini_df(closing_prices, positions, dates=None):
             "position": positions,
         },
         index=dates,
-    )
+    )  # 手动构造df
 
     # 手动计算 daily_return 和 equity_curve（模拟 run_backtest 的逻辑）
     commission = 0.00075
@@ -101,7 +101,8 @@ def test_total_return():
     df = _build_mini_df(
         closing_prices=[10.0, 10.5, 11.0],
         positions=[0, 1, 1],  # 第 2 天开仓（position 从 0 → 1），一直持仓
-    )
+    )  # 手动构造df
+
     metrics = calculate_metrics(df)
 
     expected = df["equity_curve"].iloc[-1] - 1
@@ -122,7 +123,7 @@ def test_max_drawdown():
             "equity_curve": [1.0, 1.1, 1.2, 1.0, 0.9],  # 先涨后跌
         },
         index=pd.date_range("2026-01-02", periods=5, freq="B"),
-    )
+    )  # 手动构造df
 
     metrics = calculate_metrics(df)
 
@@ -143,7 +144,8 @@ def test_num_trades():
         closing_prices=[10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5],
         positions=[0, 1, 1, 0, 0, 1, 1, 0, 1, 0],
         # 开仓日：1, 5, 8；平仓日：3, 7, 9 → 3 对
-    )
+    )  # 手动构造df
+
     metrics = calculate_metrics(df)
 
     assert (
@@ -156,15 +158,21 @@ def test_num_trades():
 # ========================================================
 def test_first_signal_is_death_cross():
     """
-    真实数据场景：平安银行第一个信号是 2025-07-23 死叉
-    必须保证 calculate_metrics 不会因为这个边界而崩
-    （这是之前 cumsum 边界 bug 的真实场景，作为回归测试保留）
+    合成数据锁定'第一个信号是死叉'边界,验证后续金叉仍能正确开仓(cumsum 边界 bug 的回归测试)
     """
-    df = _build_test_df()  # 用真实数据
-    metrics = calculate_metrics(df)
+    df = pd.DataFrame(
+        {
+            "收盘": [10, 9, 8, 9, 10, 11],  # 第3天死叉，第5天金叉
+            "golden_cross": [False, False, False, False, True, False],
+            "death_cross": [False, False, True, False, False, False],
+        },
+        index=pd.date_range("2026-01-02", periods=6, freq="B"),
+    )  # 手动构造df
 
-    # 验证：交易次数应该 > 0（不会被边界 bug 卡成 0）
-    assert metrics["num_trades"] > 0, "交易次数为 0—可能是 cumsum 边界 bug 复发"
+    df = run_backtest(df)
+
+    # 验证： 金叉的 T+1 日,position 变成 1
+    assert df["position"].iloc[5] == 1
 
     # 验证：position 列里既有 0 又有 1（说明状态机正常切换）
     assert df["position"].max() == 1, "position 应该至少出现过 1（持仓）"
@@ -179,9 +187,6 @@ def test_no_lookahead_bias():
     信号 T 日产生 → T 日 position 还没生效 → T+1 日才生效
     构造一个金叉信号在第 2 天，验证 position 第 3 天才变 1
     """
-    # 手动构造 df（不走 run_backtest），直接验证 run_backtest 的语义
-    from backtest import run_backtest as do_backtest
-
     df = pd.DataFrame(
         {
             "收盘": [10.0, 10.5, 10.8, 11.0, 11.2],
@@ -189,9 +194,9 @@ def test_no_lookahead_bias():
             "death_cross": [False, False, False, False, False],
         },
         index=pd.date_range("2026-01-02", periods=5, freq="B"),
-    )
+    )  # 手动构造df
 
-    df = do_backtest(df)
+    df = run_backtest(df)
 
     # 关键断言：金叉信号 T 日（index=1） position 应该还是 0
     assert (
@@ -225,7 +230,8 @@ def test_win_rate_and_pl_ratio():
             10.45,  # 第 8 天平仓
         ],
         positions=[0, 1, 1, 0, 0, 1, 1, 0],
-    )
+    )  # 手动构造df
+
     metrics = calculate_metrics(df)
 
     # 应该有 2 笔交易
