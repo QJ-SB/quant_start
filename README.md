@@ -17,7 +17,7 @@ The chart above shows Pingan Bank (000001) over the past year:
 ## 📁 Project Structure
 quant_start/
 ├── main.py                  # Entry point: orchestrates the pipeline
-├── data_loader.py           # Data layer: fetch from akshare + local CSV cache
+├── data_loader.py           # Data layer: fetch from tushare + local CSV cache
 ├── signals.py               # Signal layer: MA computation + cross detection
 ├── visualization.py         # Plot layer: dual-subplot chart generation
 ├── requirements.txt         # Project dependencies
@@ -28,7 +28,7 @@ quant_start/
 └── README.md
 
 The project follows the **Single Responsibility Principle** — each module does one thing:
-- Want to switch data source (akshare → Wind)? Only touch `data_loader.py`.
+- Want to switch data source? Only touch `data_loader.py` — verified: this project migrated from akshare to tushare touching only this single file, downstream modules untouched.
 - Want to add new indicators (MACD, RSI)? Only touch `signals.py`.
 - Want to redesign the chart? Only touch `visualization.py`.
 
@@ -58,7 +58,7 @@ python main.py
 ```
 
 The pipeline will:
-1. Load past year's daily data of stock `000001` (Pingan Bank) — from local CSV if cached, otherwise fetch from akshare
+1. Load past year's daily data of stock `000001` (Pingan Bank) — from local CSV if cached, otherwise fetch from tushare
 2. Compute MA5 and MA20 moving averages
 3. Detect golden cross and death cross signals
 4. Print signal dates with closing prices to the terminal
@@ -168,7 +168,7 @@ These five metrics are the most common evaluation criteria in the mainstream ind
 - **`profit_loss_ratio`** — average win / |average loss|.  
   Combined with the `win_rate` metric, it measures how big the wins are relative to the losses — not directly a "risk-reward ratio" (which would be Sharpe / Calmar / Sortino). Is this strategy worthy? Does it perform well? Typically, we can tolerate low `win_rate` when `profit_loss_ratio` is high. Additionally, a strategy with low win rate AND low profit-loss ratio is garbage.
 
-  In this MA-cross backtest on 000001.SZ, the strategy showed `win_rate` = 33.33% and `profit_loss_ratio` = 0.52 — a textbook "low win rate + low profit-loss ratio = garbage profile". Root cause: MA-cross is inherently trend-following, but the market regime in 2025-2026 for this stock was range-bound with a downward drift — strategy-market regime mismatch.
+  In this MA-cross backtest on 000001.SZ, the strategy showed `win_rate` = 22.22% and `profit_loss_ratio` = 0.44 — a textbook "low win rate + low profit-loss ratio = garbage profile". Root cause: MA-cross is inherently trend-following, but the market regime in 2025-2026 for this stock was range-bound with a downward drift — strategy-market regime mismatch.
 
 - **`num_trades`** — frequency of trading.  
   This metric counts the total number of complete round-trip trades.
@@ -191,7 +191,7 @@ df["golden_cross"] = (
 ### Local Cache Layer
 
 To decouple development from network dependency (especially when working across borders), data fetching is wrapped in a cache layer:
-- First run: fetches from akshare, saves to local CSV
+- First run: fetches from tushare, saves to local CSV
 - Subsequent runs: reads directly from CSV (no network needed)
 - Use `force_refresh=True` to bypass cache
 
@@ -206,8 +206,9 @@ The volume subplot uses `plt.subplots()` with `sharex=True` to keep both panels 
 ## ⚠️ Known Limitations
 
 - **MA cross signals are weak indicators**. They generate frequent false signals in sideways markets and lag in trending markets. This project is for learning purposes — **do not use it for actual trading**.
-- The data source `akshare` is suitable for personal research only. Production-grade quantitative systems use Wind, level-2 feeds, or proprietary data sources.
+- The data source `tushare` is suitable for personal research only. Production-grade quantitative systems use Wind, level-2 feeds, or proprietary data sources.
 - Currently only supports a single stock at a time. Multi-stock support, backtesting, and risk metrics (Sharpe, max drawdown, win rate) are planned for future versions.
+- Backtesting currently uses unadjusted price data due to free-tier limitations of Tushare. Forward-adjusted (qfq) data is the standard correct choice for backtesting, eliminating price distortion from abrupt gaps on ex-dividend and ex-rights dates. Data migration to forward-adjusted pricing is scheduled after upgrading to a paid subscription tier.
 
 ## 📝 License
 
