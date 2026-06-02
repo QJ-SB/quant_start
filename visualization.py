@@ -12,9 +12,12 @@ plt.rcParams["font.sans-serif"] = ["Microsoft YaHei"]
 plt.rcParams["axes.unicode_minus"] = False
 
 
-def plot_ma_cross(
-    df, save_path="images/ma_cross_demo.png", short_window=5, long_window=20
-):
+def plot_ma_cross(df,
+                  symbol,
+                  save_path="images/ma_cross_demo.png",
+                  short_window=5,
+                  long_window=20,
+                  ):
     """
     画 MA 均线交叉策略图（主图 + 副图）。
 
@@ -76,7 +79,7 @@ def plot_ma_cross(
     )
 
     # ============== 4. 主图左轴：设置标题、标签、图例、网格 ==============
-    ax1.set_title("平安银行（000001）- MA Cross Strategy with Backtest")
+    ax1.set_title(f"股票代码（{symbol}）- MA Cross Strategy with Backtest")
     ax1.set_ylabel("价格", color="black")
     ax1.legend(loc="upper left")
     ax1.grid(True)
@@ -137,5 +140,5 @@ if __name__ == "__main__":
 
     df = load_stock_daily_data("000001")
     df = calculate_ma_cross(df)
-    plot_ma_cross(df)
+    plot_ma_cross(df,"000001")
     print("画图完成，PNG 已保存到 images/ma_cross_demo.png")

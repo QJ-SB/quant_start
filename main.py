@@ -46,7 +46,7 @@ def main(symbol="000001", short_window=5, long_window=20):
     print(f"  完整交易次数: {metrics['num_trades']:>7d}")
 
     # Step 6: 画图（含净值曲线）
-    plot_ma_cross(df, short_window=short_window, long_window=long_window)
+    plot_ma_cross(df, symbol=symbol, short_window=short_window, long_window=long_window)
 
 
 if __name__ == "__main__":
